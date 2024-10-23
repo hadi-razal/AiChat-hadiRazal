@@ -36,7 +36,7 @@ export default function HomeScreen() {
 
                 <View style={styles.featuresContainer}>
                     {[
-                        { icon: 'bulb-outline', text: 'Advanced AI Technology' }, // Replaced brain with bulb-outline
+                        { icon: 'bulb-outline', text: 'Advanced AI Technology' }, 
                         { icon: 'time', text: '24/7 Instant Response' },
                         { icon: 'shield-checkmark', text: 'Secure & Private' },
                     ].map((feature, index) => (
@@ -63,6 +63,7 @@ export default function HomeScreen() {
                     </Pressable>
 
                     <Pressable
+                        onPress={() => router.push('/LoginScreen')}
                         style={({ pressed }) => [
                             styles.button,
                             styles.secondaryButton,
@@ -183,7 +184,6 @@ const styles = StyleSheet.create({
     madeByText: {
         textAlign: 'center',
         fontSize: 10,
-        opacity: 20,
-        color: "white"
+        color: "rgba(255,255,255,0.30)" 
     },
 });
