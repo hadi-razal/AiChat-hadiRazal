@@ -1,9 +1,28 @@
-import { StyleSheet, Text, View, Pressable, TextInput, ScrollView, KeyboardAvoidingView, Platform, SafeAreaView } from 'react-native';
+import React, { useState } from 'react';
+import { StyleSheet, Text, View, Pressable, TextInput, ScrollView, KeyboardAvoidingView, Platform, SafeAreaView, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, Stack } from 'expo-router';
+import { supabase } from '@/lib/supabase';
 
 export default function LoginScreen() {
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const [loading, setLoading] = useState(false);
+
+    const handleLogin = async () => {
+        setLoading(true);
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        
+        setLoading(false);
+        if (error) {
+            Alert.alert('Login Failed', error.message);
+            console.log(error)
+        } else {
+            router.push('/Chat');
+        }
+    };
+
     return (
         <SafeAreaView style={styles.container}>
             <KeyboardAvoidingView
@@ -49,6 +68,8 @@ export default function LoginScreen() {
                                     keyboardType="email-address"
                                     style={styles.input}
                                     autoCapitalize="none"
+                                    value={email}
+                                    onChangeText={setEmail}
                                 />
                             </View>
 
@@ -59,10 +80,9 @@ export default function LoginScreen() {
                                     placeholderTextColor="#CBD5E1"
                                     secureTextEntry
                                     style={styles.input}
+                                    value={password}
+                                    onChangeText={setPassword}
                                 />
-                                <Pressable style={styles.passwordToggle} onPress={() => {}}>
-                                    <Ionicons name="eye-outline" size={20} color="#CBD5E1" />
-                                </Pressable>
                             </View>
                         </View>
 
@@ -78,9 +98,10 @@ export default function LoginScreen() {
                                 styles.loginButton,
                                 pressed && styles.buttonPressed,
                             ]}
-                            onPress={() => router.push('/')}
+                            onPress={handleLogin}
+                            disabled={loading}
                         >
-                            <Text style={styles.buttonText}>Login</Text>
+                            <Text style={styles.buttonText}>{loading ? 'Logging in...' : 'Login'}</Text>
                         </Pressable>
 
                         {/* Social Login Options */}
