@@ -30,7 +30,7 @@ export default function Root({ children }: PropsWithChildren) {
 
 const responsiveBackground = `
 body {
-  background-color: #fff;
+  background-image: linear-gradient(to top, #1a1a2e, #1a1b31, #1a1c34, #191e37, #181f3a, #18213e, #172442, #162646, #15294c, #142d53, #123059, #0f3460);
 }
 @media (prefers-color-scheme: dark) {
   body {

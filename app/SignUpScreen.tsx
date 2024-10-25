@@ -49,7 +49,7 @@ export default function SignupScreen() {
         try {
             setUploadingImage(true);
             const fileName = `${userId}-${Date.now()}.jpg`;
-            const filePath = `profiles/${fileName}`;
+            const filePath = `${fileName}`;
 
             const { error: uploadError, data } = await supabase.storage
                 .from('images') 
@@ -65,7 +65,7 @@ export default function SignupScreen() {
 
             // Get the public URL
             const { data: { publicUrl } } = supabase.storage
-                .from('profiles')
+                .from('images')
                 .getPublicUrl(filePath);
 
             return publicUrl;
@@ -82,7 +82,7 @@ export default function SignupScreen() {
             Alert.alert('Error', 'Please fill in all fields.');
             return;
         }
-
+    
         try {
             // 1. Sign up the user
             const { data: authData, error: authError } = await supabase.auth.signUp({
@@ -94,38 +94,38 @@ export default function SignupScreen() {
                     },
                 },
             });
-
+    
             if (authError) throw authError;
-
+    
             const user = authData.user;
             if (!user) throw new Error('User creation failed');
-
-            // 2. Upload image if exists
+    
+            // 2. Upload image if it exists
             let profileImageUrl = null;
             if (image) {
                 try {
                     profileImageUrl = await uploadImage(user.id);
                 } catch (imageError) {
                     console.error('Image upload error:', imageError);
-                    // Continue with user creation even if image upload fails
+                    // Proceed even if image upload fails
                 }
             }
-
-            // 3. Create user profile
+    
+            // 3. Create user profile in the "users" table
             const { error: profileError } = await supabase
                 .from('users')
                 .insert([
                     {
-                        // id: user.id,
+                        // id: user.id,           // Auth ID as primary key in users table
                         name: fullName,
                         email: email.toLowerCase(),
                         profile: profileImageUrl,
                         created_at: new Date().toISOString(),
                     }
                 ]);
-
+    
             if (profileError) throw profileError;
-
+    
             Alert.alert(
                 'Success',
                 'Account created successfully! Please check your email for verification.',
@@ -136,11 +136,12 @@ export default function SignupScreen() {
                     }
                 ]
             );
-        } catch (error: any) {
+        } catch (error:any) {
             console.error('Signup error:', error);
             Alert.alert('Error', error.message || 'Failed to create account');
         }
     };
+    
 
     return (
         <SafeAreaView style={styles.container}>

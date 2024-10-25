@@ -17,6 +17,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Stack, useRouter } from 'expo-router';
 import { format } from 'date-fns';
 import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold, GenerativeModel, ChatSession } from '@google/generative-ai';
+import { supabase } from '@/lib/supabase';
 
 // Types
 interface UserProfile {
@@ -75,13 +76,9 @@ const SkeletonBubble: React.FC<SkeletonBubbleProps> = ({ width = 70, lines = 2 }
     return (
         <View style={[styles.messageBubbleContainer]}>
             <View style={styles.avatarContainer}>
-                <Animated.View
-                    style={[
-                        styles.messageAvatar,
-                        styles.aiAvatar,
-                        { opacity: fadeAnim },
-                    ]}
-                />
+                <View style={[styles.messageAvatar, styles.aiAvatar]}>
+                    <Ionicons name="chatbubbles-outline" size={20} color="#fff" />
+                </View>
                 <View style={styles.aiIndicator} />
             </View>
             <View style={[styles.messageBubble, styles.aiBubble]}>
@@ -89,7 +86,7 @@ const SkeletonBubble: React.FC<SkeletonBubbleProps> = ({ width = 70, lines = 2 }
                     <Animated.View
                         key={i}
                         style={[
-                            { 
+                            {
                                 width: `${width - (i === lines - 1 ? 20 : 0)}%`,
                                 opacity: fadeAnim,
                             },
@@ -109,13 +106,37 @@ export default function ChatScreen() {
     const [isLoading, setIsLoading] = useState(false);
     const [chatInstance, setChatInstance] = useState<ChatSession | null>(null);
     const [model, setModel] = useState<GenerativeModel | null>(null);
+    const [profileImage, setProfileImage] = useState<string | "">("");
 
     useEffect(() => {
         setupChat();
+        getUserProfile()
         return () => {
             setChatInstance(null);
         };
     }, []);
+
+    const getUserProfile = async () => {
+        try {
+            const { data: { user }, error } = await supabase.auth.getUser();
+
+            if (error) throw error;
+
+            // Fetch the user's profile image URL from the "users" table
+            const { data, error: profileError } = await supabase
+                .from("users")
+                .select("profile")
+                .eq("email", user?.email)
+                .single();
+
+            if (profileError) throw profileError;
+
+            // Set the profile image URL
+            setProfileImage(data.profile);
+        } catch (error: any) {
+            console.error("Error fetching user profile:", error?.message);
+        }
+    };
 
     const setupChat = async () => {
         try {
@@ -148,28 +169,9 @@ export default function ChatScreen() {
                 maxOutputTokens: 2048,
             };
 
-            const safetySettings = [
-                {
-                    category: HarmCategory.HARM_CATEGORY_HARASSMENT,
-                    threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
-                },
-                {
-                    category: HarmCategory.HARM_CATEGORY_HATE_SPEECH,
-                    threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
-                },
-                {
-                    category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
-                    threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
-                },
-                {
-                    category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
-                    threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
-                },
-            ];
 
             const chat = newModel.startChat({
                 generationConfig,
-                safetySettings,
             });
 
             setChatInstance(chat);
@@ -263,6 +265,7 @@ export default function ChatScreen() {
         return formattedText;
     };
 
+
     const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
         const formattedText = formatAIResponse(message.text);
 
@@ -274,14 +277,19 @@ export default function ChatScreen() {
                 ]}
             >
                 <View style={styles.avatarContainer}>
-                    <Image
-                        source={{ uri: message.sender === 'ai' ? AI_AVATAR : (message.avatar || DEFAULT_AVATAR) }}
-                        style={[
-                            styles.messageAvatar,
-                            message.error && styles.errorAvatar,
-                            message.sender === 'ai' && styles.aiAvatar,
-                        ]}
-                    />
+                    {message.sender === 'user' ? (
+                        <Image
+                            source={{ uri: (profileImage || DEFAULT_AVATAR) }}
+                            style={[
+                                styles.messageAvatar,
+                                message.error && styles.errorAvatar,
+                            ]}
+                        />
+                    ) : (
+                        <View style={[styles.messageAvatar, styles.aiAvatar]}>
+                            <Ionicons name="chatbubbles-outline" size={20} color="#fff" />
+                        </View>
+                    )}
                     {message.sender === 'ai' && <View style={styles.aiIndicator} />}
                 </View>
                 <View
@@ -322,7 +330,9 @@ export default function ChatScreen() {
                             <Text style={styles.headerTitle}>AIChat</Text>
                             <View style={styles.onlineIndicator}>
                                 <View style={styles.onlineDot} />
-                                <Text style={styles.onlineText}>Online</Text>
+                                <Text style={styles.onlineText}>
+                                    {isLoading ? 'Typing...' : 'Online'}
+                                </Text>
                             </View>
                         </View>
                     </View>
@@ -332,7 +342,7 @@ export default function ChatScreen() {
                         onPress={() => router.push('/Profile')}
                     >
                         <Image
-                            source={{ uri: DEFAULT_AVATAR }}
+                            source={{ uri: profileImage || DEFAULT_AVATAR }}
                             style={styles.headerAvatar}
                         />
                     </Pressable>
@@ -362,7 +372,7 @@ export default function ChatScreen() {
                             style={styles.input}
                             value={message}
                             onChangeText={setMessage}
-                            placeholder="Message Gemini AI..."
+                            placeholder="send your message"
                             placeholderTextColor="#94A3B8"
                             multiline
                             maxLength={1000}
@@ -403,6 +413,8 @@ const styles = StyleSheet.create({
         paddingHorizontal: 16,
         borderBottomWidth: 1,
         borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+        backgroundColor: '#1A1A2E',
+        zIndex: 10,
     },
     headerContent: {
         flexDirection: 'row',
@@ -457,6 +469,7 @@ const styles = StyleSheet.create({
     messagesContent: {
         padding: 16,
         gap: 16,
+        paddingBottom: 32,
     },
     messageBubbleContainer: {
         flexDirection: 'row',
@@ -474,10 +487,21 @@ const styles = StyleSheet.create({
         width: 32,
         height: 32,
         borderRadius: 16,
+        backgroundColor: '#7C3AED',
+        justifyContent: 'center',
+        alignItems: 'center',
     },
     aiAvatar: {
         backgroundColor: '#7C3AED',
+        justifyContent: 'center',
+        alignItems: 'center',
         padding: 4,
+    },
+    aiIconContainer: {
+        width: '100%',
+        height: '100%',
+        justifyContent: 'center',
+        alignItems: 'center',
     },
     aiIndicator: {
         position: 'absolute',
@@ -565,7 +589,7 @@ const styles = StyleSheet.create({
     sendButton: {
         position: 'absolute',
         right: 4,
-        bottom: 4,
+        bottom: 7,
         width: 40,
         height: 40,
         borderRadius: 20,
@@ -584,6 +608,96 @@ const styles = StyleSheet.create({
         borderWidth: 2,
         borderColor: '#EF4444',
     },
-    // Skeleton styles
-   
+    // skeletonLine: {
+    //     height: 12,
+    //     backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    //     borderRadius: 6,
+    //     marginVertical: 4,
+    // },
+    loadingContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+    },
+    loadingDots: {
+        flexDirection: 'row',
+        gap: 2,
+    },
+    loadingDot: {
+        width: 4,
+        height: 4,
+        borderRadius: 2,
+        backgroundColor: 'rgba(255, 255, 255, 0.6)',
+    },
+    typingContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 8,
+        paddingHorizontal: 12,
+        borderRadius: 16,
+        backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    },
+    typingText: {
+        color: 'rgba(255, 255, 255, 0.6)',
+        fontSize: 12,
+        marginLeft: 4,
+    },
+    // New styles for enhanced visual effects
+    messageShadow: {
+        shadowColor: '#000',
+        shadowOffset: {
+            width: 0,
+            height: 2,
+        },
+        shadowOpacity: 0.25,
+        shadowRadius: 3.84,
+        elevation: 5,
+    },
+    headerShadow: {
+        shadowColor: '#000',
+        shadowOffset: {
+            width: 0,
+            height: 2,
+        },
+        shadowOpacity: 0.25,
+        shadowRadius: 3.84,
+        elevation: 5,
+    },
+    inputShadow: {
+        shadowColor: '#000',
+        shadowOffset: {
+            width: 0,
+            height: -2,
+        },
+        shadowOpacity: 0.25,
+        shadowRadius: 3.84,
+        elevation: 5,
+    },
+    // Animation related styles
+    fadeIn: {
+        opacity: 1,
+        transform: [{ scale: 1 }],
+    },
+    fadeOut: {
+        opacity: 0,
+        transform: [{ scale: 0.95 }],
+    },
+    slideIn: {
+        transform: [{ translateY: 0 }],
+    },
+    slideOut: {
+        transform: [{ translateY: 50 }],
+    },
+    // Responsive styles for different screen sizes
+    containerSmall: {
+        paddingHorizontal: 8,
+    },
+    containerMedium: {
+        paddingHorizontal: 16,
+    },
+    containerLarge: {
+        paddingHorizontal: 24,
+        maxWidth: 800,
+        alignSelf: 'center',
+    },
 });
