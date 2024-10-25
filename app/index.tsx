@@ -15,15 +15,11 @@ export default function HomeScreen() {
     const checkUser = async () => {
         try {
             const { data: { user }, error } = await supabase?.auth?.getUser();
-            
-            if (error) {
-                throw error;
-            }
 
             if (user) {
-                // If user exists, redirect to chat
                 router.replace('/Chat');
             }
+
         } catch (error) {
             console.error('Error checking user:', error);
         } finally {
