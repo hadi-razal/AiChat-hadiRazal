@@ -36,12 +36,6 @@ export default function HomeScreen() {
         <SafeAreaView style={styles.container}>
             <Stack.Screen options={{ headerShown: false }} />
 
-            {/* Background Gradient */}
-            <LinearGradient
-                colors={['#1A1A2E', '#16213E', '#0F3460']}
-                style={StyleSheet.absoluteFill}
-            />
-
             {/* Main Content */}
             <View style={styles.contentWrapper}>
                 {/* Hero Section */}
@@ -110,6 +104,7 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
+        backgroundColor: '#1A1A2E',
     },
     loadingContainer: {
         justifyContent: 'center',

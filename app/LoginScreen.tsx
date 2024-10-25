@@ -32,11 +32,7 @@ export default function LoginScreen() {
             >
                 <Stack.Screen options={{ headerShown: false }} />
 
-                {/* Background Gradient */}
-                <LinearGradient
-                    colors={['#1A1A2E', '#16213E', '#0F3460']}
-                    style={StyleSheet.absoluteFill}
-                />
+               
 
                 <ScrollView 
                     contentContainerStyle={styles.scrollContainer}
@@ -148,6 +144,7 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
+        backgroundColor: '#1A1A2E',
     },
     scrollContainer: {
         flexGrow: 1,

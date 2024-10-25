@@ -4,19 +4,20 @@ import {
     View,
     Text,
     Pressable,
-    Image,
     SafeAreaView,
     Alert,
     ActivityIndicator,
+    Image,
 } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/lib/supabase';
+import { LinearGradient } from 'expo-linear-gradient';
 
 interface UserProfile {
     username: string;
     email: string;
-    avatar_url: string;
+    profile: string;
 }
 
 export default function ProfileScreen() {
@@ -26,7 +27,7 @@ export default function ProfileScreen() {
     const [userProfile, setUserProfile] = useState<UserProfile>({
         username: "",
         email: "",
-        avatar_url: 'https://via.placeholder.com/100',
+        profile: ""
     });
 
     const getUserProfile = async () => {
@@ -34,7 +35,6 @@ export default function ProfileScreen() {
             setLoading(true);
             setError(null);
             
-            // Get the authenticated user
             const { data: { user }, error: userError } = await supabase.auth.getUser();
             if (userError) throw userError;
             
@@ -42,7 +42,6 @@ export default function ProfileScreen() {
                 throw new Error('No authenticated user found');
             }
 
-            // Fetch the user's profile from the "users" table
             const { data, error: profileError } = await supabase
                 .from("users")
                 .select("name, email, profile")
@@ -54,7 +53,7 @@ export default function ProfileScreen() {
             setUserProfile({
                 username: data.name || user.email?.split('@')[0] || 'Anonymous',
                 email: user.email || '',
-                avatar_url: data.profile || 'https://via.placeholder.com/100',
+                profile: data.profile || ''
             });
         } catch (error: any) {
             console.error("Error fetching user profile:", error?.message);
@@ -94,23 +93,27 @@ export default function ProfileScreen() {
         );
     };
 
-    const handleUpdateAvatar = async () => {
-        // This is a placeholder for image upload functionality
-        Alert.alert(
-            "Update Profile Picture",
-            "This feature will allow you to update your profile picture. Implementation pending.",
-            [{ text: "OK" }]
+    const renderAvatar = () => {
+        if (userProfile.profile) {
+            return (
+                <Image
+                    source={{ uri: userProfile.profile }}
+                    style={styles.avatar}
+                />
+            );
+        }
+
+        return (
+            <LinearGradient
+                colors={['#7C3AED', '#9F7AEA']}
+                style={styles.avatar}
+            >
+                <Ionicons name="person" size={60} color="#fff" />
+            </LinearGradient>
         );
     };
 
-    const handleEditProfile = () => {
-        Alert.alert(
-            "Edit Profile",
-            "This feature will allow you to edit your profile details. Implementation pending.",
-            [{ text: "OK" }]
-        );
-    };
-    
+
     return (
         <SafeAreaView style={styles.container}>
             <Stack.Screen
@@ -119,73 +122,79 @@ export default function ProfileScreen() {
                 }}
             />
 
-            <View style={styles.header}>
-                <Pressable style={styles.backButton} onPress={() => router.back()}>
-                    <Ionicons name="arrow-back" size={24} color="#fff" />
-                </Pressable>
-                <Text style={styles.headerTitle}>Profile</Text>
-            </View>
-
-            {error ? (
-                <View style={styles.errorContainer}>
-                    <Text style={styles.errorText}>{error}</Text>
-                    <Pressable
-                        style={styles.retryButton}
-                        onPress={getUserProfile}
+            <LinearGradient
+                colors={['#1A1A2E', '#2A2A3E']}
+                style={styles.gradientBackground}
+            >
+                <View style={styles.header}>
+                    <Pressable 
+                        style={styles.backButton} 
+                        onPress={() => router.back()}
                     >
-                        <Text style={styles.retryButtonText}>Retry</Text>
+                        <Ionicons name="chevron-back" size={28} color="#fff" />
                     </Pressable>
+                    <Text style={styles.headerTitle}>Profile</Text>
                 </View>
-            ) : (
-                <View style={styles.content}>
-                    <View style={styles.profileSection}>
-                        <View style={styles.avatarContainer}>
-                            <Image
-                                source={{ uri: userProfile.avatar_url }}
-                                style={styles.avatar}
-                            />
-                            <Pressable 
-                                style={styles.editAvatarButton}
-                                onPress={handleUpdateAvatar}
+
+                {error ? (
+                    <View style={styles.errorContainer}>
+                        <Ionicons name="alert-circle" size={48} color="#EF4444" />
+                        <Text style={styles.errorText}>{error}</Text>
+                        <Pressable
+                            style={styles.retryButton}
+                            onPress={getUserProfile}
+                        >
+                            <Text style={styles.retryButtonText}>Retry</Text>
+                        </Pressable>
+                    </View>
+                ) : (
+                    <View style={styles.content}>
+                        <View style={styles.profileSection}>
+                            <View style={styles.avatarContainer}>
+                                {renderAvatar()}
+                            </View>
+
+                            <View style={styles.infoSection}>
+                                <View style={styles.infoCard}>
+                                    <View style={styles.infoHeader}>
+                                        <Ionicons name="person" size={20} color="#7C3AED" />
+                                        <Text style={styles.infoLabel}>Username</Text>
+                                    </View>
+                                    <Text style={styles.infoValue}>{userProfile.username}</Text>
+                                </View>
+
+                                <View style={styles.infoCard}>
+                                    <View style={styles.infoHeader}>
+                                        <Ionicons name="mail" size={20} color="#7C3AED" />
+                                        <Text style={styles.infoLabel}>Email</Text>
+                                    </View>
+                                    <Text style={styles.infoValue}>{userProfile.email}</Text>
+                                </View>
+
+                                <View style={styles.infoCard}>
+                                    <View style={styles.infoHeader}>
+                                        <Ionicons name="shield-checkmark" size={20} color="#7C3AED" />
+                                        <Text style={styles.infoLabel}>Account Status</Text>
+                                    </View>
+                                    <Text style={styles.infoValue}>Active</Text>
+                                </View>
+                            </View>
+                        </View>
+
+                        <View style={styles.actionsSection}>
+                            <Pressable
+                                style={styles.logoutButton}
+                                onPress={handleLogout}
                             >
-                                <Ionicons name="camera" size={20} color="#fff" />
+                                <Ionicons name="log-out-outline" size={24} color="#EF4444" />
+                                <Text style={styles.logoutButtonText}>
+                                    Logout
+                                </Text>
                             </Pressable>
                         </View>
-
-                        <View style={styles.infoSection}>
-                            <View style={styles.infoItem}>
-                                <Text style={styles.infoLabel}>Username</Text>
-                                <Text style={styles.infoValue}>{userProfile.username}</Text>
-                            </View>
-
-                            <View style={styles.infoItem}>
-                                <Text style={styles.infoLabel}>Email</Text>
-                                <Text style={styles.infoValue}>{userProfile.email}</Text>
-                            </View>
-                        </View>
                     </View>
-
-                    <View style={styles.actionsSection}>
-                        <Pressable
-                            style={styles.actionButton}
-                            onPress={handleEditProfile}
-                        >
-                            <Ionicons name="create-outline" size={24} color="#fff" />
-                            <Text style={styles.actionButtonText}>Edit Profile</Text>
-                        </Pressable>
-
-                        <Pressable
-                            style={[styles.actionButton, styles.actionButtonDanger]}
-                            onPress={handleLogout}
-                        >
-                            <Ionicons name="log-out-outline" size={24} color="#EF4444" />
-                            <Text style={[styles.actionButtonText, styles.actionButtonTextDanger]}>
-                                Logout
-                            </Text>
-                        </Pressable>
-                    </View>
-                </View>
-            )}
+                )}
+            </LinearGradient>
         </SafeAreaView>
     );
 }
@@ -195,8 +204,10 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: '#1A1A2E',
     },
-    loadingContainer: {
+    gradientBackground: {
         flex: 1,
+    },
+    loadingContainer: {
         justifyContent: 'center',
         alignItems: 'center',
     },
@@ -204,6 +215,7 @@ const styles = StyleSheet.create({
         color: '#fff',
         marginTop: 12,
         fontSize: 16,
+        fontWeight: '500',
     },
     errorContainer: {
         flex: 1,
@@ -215,43 +227,40 @@ const styles = StyleSheet.create({
         color: '#EF4444',
         fontSize: 16,
         textAlign: 'center',
-        marginBottom: 16,
+        marginTop: 12,
+        marginBottom: 24,
     },
     retryButton: {
         backgroundColor: '#7C3AED',
-        paddingHorizontal: 24,
-        paddingVertical: 12,
-        borderRadius: 8,
+        paddingHorizontal: 32,
+        paddingVertical: 14,
+        borderRadius: 12,
+        elevation: 2,
     },
     retryButtonText: {
         color: '#fff',
         fontSize: 16,
-        fontWeight: '500',
+        fontWeight: '600',
     },
     header: {
         paddingTop: 60,
-        paddingBottom: 16,
-        paddingHorizontal: 16,
+        paddingBottom: 20,
+        paddingHorizontal: 20,
+        flexDirection: 'row',
+        alignItems: 'center',
         borderBottomWidth: 1,
         borderBottomColor: 'rgba(255, 255, 255, 0.1)',
-        flexDirection: 'row',
-        alignItems: 'center',
     },
     backButton: {
-        flexDirection: 'row',
-        alignItems: 'center',
         padding: 8,
-    },
-    backText: {
-        color: '#fff',
-        fontSize: 16,
-        marginLeft: 4,
+        marginRight: 8,
+        borderRadius: 12,
     },
     headerTitle: {
-        fontSize: 24,
-        fontWeight: '600',
+        fontSize: 28,
+        fontWeight: '700',
         color: '#fff',
-        marginLeft: 8,
+        flex: 1,
     },
     content: {
         flex: 1,
@@ -262,68 +271,65 @@ const styles = StyleSheet.create({
         marginBottom: 32,
     },
     avatarContainer: {
-        position: 'relative',
-        marginBottom: 24,
+        marginBottom: 32,
+        elevation: 8,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.25,
+        shadowRadius: 3.84,
     },
     avatar: {
         width: 120,
         height: 120,
         borderRadius: 60,
-        borderWidth: 3,
-        borderColor: '#7C3AED',
-    },
-    editAvatarButton: {
-        position: 'absolute',
-        bottom: 0,
-        right: 0,
-        backgroundColor: '#7C3AED',
-        width: 40,
-        height: 40,
-        borderRadius: 20,
         justifyContent: 'center',
         alignItems: 'center',
-        borderWidth: 3,
-        borderColor: '#1A1A2E',
+        backgroundColor: '#7C3AED',
     },
     infoSection: {
         width: '100%',
         gap: 16,
     },
-    infoItem: {
-        backgroundColor: 'rgba(255, 255, 255, 0.1)',
-        borderRadius: 12,
-        padding: 16,
+    infoCard: {
+        backgroundColor: 'rgba(255, 255, 255, 0.05)',
+        borderRadius: 16,
+        padding: 20,
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.1)',
+    },
+    infoHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 8,
+        gap: 8,
     },
     infoLabel: {
         fontSize: 14,
-        color: 'rgba(255, 255, 255, 0.6)',
-        marginBottom: 4,
+        color: 'rgba(255, 255, 255, 0.7)',
+        fontWeight: '500',
     },
     infoValue: {
-        fontSize: 16,
+        fontSize: 18,
         color: '#fff',
-        fontWeight: '500',
+        fontWeight: '600',
     },
     actionsSection: {
-        gap: 12,
+        gap: 16,
+        marginTop: 'auto',
+        paddingBottom: 24,
     },
-    actionButton: {
+    logoutButton: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: 'rgba(255, 255, 255, 0.1)',
+        justifyContent: 'center',
+        backgroundColor: 'rgba(239, 68, 68, 0.1)',
         padding: 16,
-        borderRadius: 12,
+        borderRadius: 16,
         gap: 12,
     },
-    actionButtonDanger: {
-        backgroundColor: 'rgba(239, 68, 68, 0.1)',
-    },
-    actionButtonText: {
-        color: '#fff',
-        fontSize: 16,
-        fontWeight: '500',
-    },
-    actionButtonTextDanger: {
+    logoutButtonText: {
         color: '#EF4444',
+        fontSize: 18,
+        fontWeight: '600',
     },
 });

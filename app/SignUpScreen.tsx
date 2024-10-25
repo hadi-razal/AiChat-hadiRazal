@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { StyleSheet, Text, View, Pressable, TextInput, ScrollView, KeyboardAvoidingView, Platform, SafeAreaView, Alert, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Stack, useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import * as ImagePicker from 'expo-image-picker';
@@ -13,6 +12,7 @@ interface ImageAsset {
 }
 
 export default function SignupScreen() {
+    
     const router = useRouter();
     const [fullName, setFullName] = useState<string>('');
     const [email, setEmail] = useState<string>('');
@@ -107,7 +107,6 @@ export default function SignupScreen() {
                     profileImageUrl = await uploadImage(user.id);
                 } catch (imageError) {
                     console.error('Image upload error:', imageError);
-                    // Proceed even if image upload fails
                 }
             }
     
@@ -116,7 +115,7 @@ export default function SignupScreen() {
                 .from('users')
                 .insert([
                     {
-                        // id: user.id,           // Auth ID as primary key in users table
+                        // id: user.id,           
                         name: fullName,
                         email: email.toLowerCase(),
                         profile: profileImageUrl,
@@ -150,7 +149,6 @@ export default function SignupScreen() {
                 style={styles.container}
             >
                 <Stack.Screen options={{ headerShown: false }} />
-                <LinearGradient colors={['#1A1A2E', '#16213E', '#0F3460']} style={StyleSheet.absoluteFillObject} />
 
                 <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
                     <View style={styles.header}>
@@ -283,6 +281,7 @@ export default function SignupScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
+        backgroundColor: '#1A1A2E',
     },
     scrollContainer: {
         flexGrow: 1,
