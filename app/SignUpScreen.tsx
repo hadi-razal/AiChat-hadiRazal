@@ -43,34 +43,35 @@ export default function SignupScreen() {
         }
     };
 
-    const uploadImage = async (): Promise<string | null> => {
-        if (!image?.base64 || !email) return null;
+    const uploadImage = async (userId: string): Promise<string | null> => {
+        if (!image?.base64) return null;
 
         try {
             setUploadingImage(true);
-            const fileName = `${Date.now()}.jpg`;
-            const filePath = `${email}/${fileName}`;
+            const fileName = `${userId}-${Date.now()}.jpg`;
+            const filePath = `profiles/${fileName}`;
 
-            const { error: uploadError } = await supabase.storage
-                .from('profiles')
+            const { error: uploadError, data } = await supabase.storage
+                .from('images') 
                 .upload(filePath, decode(image.base64), {
                     contentType: 'image/jpeg',
                     upsert: true,
                 });
 
             if (uploadError) {
+                console.error('Upload error:', uploadError);
                 throw uploadError;
             }
 
+            // Get the public URL
             const { data: { publicUrl } } = supabase.storage
                 .from('profiles')
                 .getPublicUrl(filePath);
 
             return publicUrl;
         } catch (error) {
-            Alert.alert('Error', 'Failed to upload image');
             console.error('Upload error:', error);
-            return null;
+            throw error;
         } finally {
             setUploadingImage(false);
         }
@@ -82,27 +83,62 @@ export default function SignupScreen() {
             return;
         }
 
-        let profileImageUrl = null;
-        if (image) {
-            profileImageUrl = await uploadImage();
-        }
-
-        const { error } = await supabase.auth.signUp({
-            email,
-            password,
-            options: {
-                data: {
-                    full_name: fullName,
-                    avatar_url: profileImageUrl,
+        try {
+            // 1. Sign up the user
+            const { data: authData, error: authError } = await supabase.auth.signUp({
+                email,
+                password,
+                options: {
+                    data: {
+                        name: fullName,
+                    },
                 },
-            },
-        });
+            });
 
-        if (error) {
-            Alert.alert('Error', error.message);
-        } else {
-            Alert.alert('Success', 'Account created successfully! Please check your email for verification.');
-            router.push('/LoginScreen');
+            if (authError) throw authError;
+
+            const user = authData.user;
+            if (!user) throw new Error('User creation failed');
+
+            // 2. Upload image if exists
+            let profileImageUrl = null;
+            if (image) {
+                try {
+                    profileImageUrl = await uploadImage(user.id);
+                } catch (imageError) {
+                    console.error('Image upload error:', imageError);
+                    // Continue with user creation even if image upload fails
+                }
+            }
+
+            // 3. Create user profile
+            const { error: profileError } = await supabase
+                .from('users')
+                .insert([
+                    {
+                        // id: user.id,
+                        name: fullName,
+                        email: email.toLowerCase(),
+                        profile: profileImageUrl,
+                        created_at: new Date().toISOString(),
+                    }
+                ]);
+
+            if (profileError) throw profileError;
+
+            Alert.alert(
+                'Success',
+                'Account created successfully! Please check your email for verification.',
+                [
+                    {
+                        text: 'OK',
+                        onPress: () => router.push('/LoginScreen')
+                    }
+                ]
+            );
+        } catch (error: any) {
+            console.error('Signup error:', error);
+            Alert.alert('Error', error.message || 'Failed to create account');
         }
     };
 

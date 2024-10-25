@@ -1,11 +1,37 @@
-import { StyleSheet, Text, View, Pressable, Dimensions, SafeAreaView } from 'react-native';
+import { StyleSheet, Text, View, Pressable, SafeAreaView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, Stack } from 'expo-router';
-
-const { width } = Dimensions.get('window');
+import { supabase } from '@/lib/supabase';
+import { useState, useEffect } from 'react';
 
 export default function HomeScreen() {
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+        checkUser();
+    }, []);
+
+    const checkUser = async () => {
+        try {
+            const { data: { user }, error } = await supabase?.auth?.getUser();
+            
+            if (error) {
+                throw error;
+            }
+
+            if (user) {
+                // If user exists, redirect to chat
+                router.replace('/Chat');
+            }
+        } catch (error) {
+            console.error('Error checking user:', error);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+
     return (
         <SafeAreaView style={styles.container}>
             <Stack.Screen options={{ headerShown: false }} />
@@ -36,7 +62,7 @@ export default function HomeScreen() {
 
                 <View style={styles.featuresContainer}>
                     {[
-                        { icon: 'bulb-outline', text: 'Advanced AI Technology' }, 
+                        { icon: 'bulb-outline', text: 'Advanced AI Technology' },
                         { icon: 'time', text: '24/7 Instant Response' },
                         { icon: 'shield-checkmark', text: 'Secure & Private' },
                     ].map((feature, index) => (
@@ -46,7 +72,6 @@ export default function HomeScreen() {
                         </View>
                     ))}
                 </View>
-
 
                 {/* Action Buttons */}
                 <View style={styles.buttonContainer}>
@@ -77,7 +102,6 @@ export default function HomeScreen() {
                 <View style={styles.madeByContainer}>
                     <Text style={styles.madeByText}>Made By Hadi Razal</Text>
                 </View>
-
             </View>
         </SafeAreaView>
     );
@@ -86,6 +110,15 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
+    },
+    loadingContainer: {
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: '#1A1A2E',
+    },
+    loadingText: {
+        color: '#fff',
+        fontSize: 16,
     },
     contentWrapper: {
         flex: 1,
@@ -184,6 +217,6 @@ const styles = StyleSheet.create({
     madeByText: {
         textAlign: 'center',
         fontSize: 10,
-        color: "rgba(255,255,255,0.30)" 
+        color: "rgba(255,255,255,0.30)"
     },
 });

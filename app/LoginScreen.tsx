@@ -6,6 +6,7 @@ import { router, Stack } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 
 export default function LoginScreen() {
+    
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
