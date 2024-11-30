@@ -352,7 +352,7 @@ export default function ChatScreen() {
             <KeyboardAvoidingView
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
                 style={styles.keyboardAvoid}
-                keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+                keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
             >
                 <ScrollView
                     ref={scrollViewRef}
@@ -408,7 +408,7 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     header: {
-        paddingTop: 60,
+        paddingTop: 10,
         paddingBottom: 16,
         paddingHorizontal: 16,
         borderBottomWidth: 1,
